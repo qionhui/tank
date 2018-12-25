@@ -17,6 +17,7 @@
             background-image: url("tank/background.gif");
         }
     </style>
+    <script src="my$js.js"></script>
     <script>
     window.onload = function(){
 
@@ -41,7 +42,7 @@
         */
 
         var stage = function(can){
-            var can = document.getElementById("can").getContext("2d");
+            var can = my$(can).getContext("2d");
             var stage_this = this;
             var scene = null;
             var time = 0;
