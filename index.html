@@ -1,3 +1,4 @@
+/*
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -425,6 +426,467 @@
             if (e.keyCode==39) my2.stop("right");
             if (e.keyCode==110) my2.fire_ = false;  //.键
         };
+    }
+    </script>
+</head>
+<body>
+    <div id="can">
+        <canvas id="mycanvas" width="600" height="600">您的浏览器版本过低,暂不支持该功能!</canvas>
+    </div>
+</body>
+</html>
+*/
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MyTank</title>
+    <link href="tank/灰_128.ico" type="images/x-icon" />
+    <style>
+        *{
+            padding: 0;
+            margin: 0;
+        }
+        #can{
+            text-align: center;
+            margin-top: 60px;
+        }
+        #mycanvas{ 
+            background-image: url("tank/background.gif");
+        }
+    </style>
+    <script src="my$js.js"></script>
+    <script>
+    window.onload = function(){
+	var can = my$("mycanvas").getContext("2d");
+       
+        var data={
+            "init":function()
+            {
+			//坦克上:    data.images[0]
+			//坦克下:    data.images[1]
+			//坦克左:    data.images[2]
+			//坦克右:    data.images[3]
+			//草：		data.images[4]
+			//墙：       data.images[5]
+			//水:        data.images[6]
+			//子弹:      data.images[7]
+                var imgs=["tank/myup.png","tank/mydown.png","tank/myleft.png","tank/myright.png","tank/grass.gif","tank/wall.gif","tank/river.gif","tank/bullet.png"];
+                var p=0;
+				for(var i in imgs){
+					this.images[i]=new Image();
+					this.images[i].src=imgs[i];
+					this.images[i].onload=function()
+					{
+						p++;
+						if (p==imgs.length){
+							start();
+						}
+						can.strokeRect(50,500,500,30);
+							can.fillRect(50,500,p*(500/imgs.length),30);
+						can.font="30px Georgia";
+						can.fillText("加载中...",250,250);
+					}
+            }
+				
+				},
+               
+            "images":[]
+        };
+       data.init();
+
+
+function start(){
+        var stage = function(can){
+			var can = can;
+            var stage_this = this;
+            var scene = null;
+            var time = 0;
+            this.add = function(sce){
+
+            // this.xxx=data.images[0];
+
+                    scene = sce;
+            }
+
+             this.circulation = function(time){
+                if(scene == null)return;
+
+                scene.circulation(time);
+                this.detection();
+                this.sort();
+                this.draw();
+            }
+            this.sort = function(){
+                var ls;
+                for(var i = 0;i < scene.elf.length-1;i++)
+                    for(var j = 0;j < scene.elf.length-1;j++)
+                        if(scene.elf[j].zindex > scene.elf[j+1].zindex){
+                            ls = scene.elf[j];
+                            scene.elf[j] = scene.elf[j+1];
+                            scene.elf[j+1] = ls;
+                        }
+                for(var i in scene.elf)scene.elf[i].index = i;
+                scene.str = scene.elf;
+            }
+            this.draw = function(){
+                can.clearRect(0,0,600,600);
+                for(var i in scene.elf){
+                    if(scene.elf[i].src){
+                            var img = new Image();
+                            img.src = scene.elf[i].src;
+                            can.drawImage(img,  scene.elf[i].x-scene.elf[i].w/2,  scene.elf[i].y-scene.elf[i].h/2,  scene.elf[i].w,  scene.elf[i].h);
+                    }
+                        else  can.fillRect(scene.elf[i].x-scene.elf[i].w/2,  scene.elf[i].y-scene.elf[i].h/2,  scene.elf[i].w,  scene.elf[i].h);
+                }
+            }
+            this.detection = function(){
+                var elf_ = scene.elf;
+                for(var i = 0; i < elf_.length-1;i++){
+                    var ei = elf_[i];
+                    for(var j = i+1; j < elf_.length;j++){
+                        var ej = elf_[j];
+                        if(
+                            Math.abs(ei.x - ej.x)< ei.w/2+ej.w/2
+                            && Math.abs(ei.y - ej.y) < ei.h/2+ej.h/2
+                        ){ 
+                            // console.log("1");
+                             if(elf_[i] != null){elf_[i].cras(elf_[j]);};
+                            if(elf_[j] != null){elf_[j].cras(elf_[i]);};
+                       
+                        }
+                    }
+                }
+            }
+            setInterval(function(){
+                time++;
+                if(time >= 61)time = 1;
+                stage_this.circulation(time);
+            },1000/60)
+        }
+
+        var scene = function(){
+            this.elf = [];
+
+            this.add = function(elf){
+                // console.log(this.elf.length);
+                this.elf[this.elf.length] = elf;
+                elf.parent=this;
+                elf.index = this.elf.length-1;
+            }
+            this.remove = function(e){
+                // console.log(this.elf);
+                // console.log("名为" + e.name +"的序列为" + e.index  );
+                this.elf.splice(e.index,1);
+                e=null;
+                for(var i in this.elf)
+                    this.elf[i].index = i;
+            }
+            this.circulation = function(time){
+                for(var i in this.elf){
+                    this.elf[i].circulation(time);
+                }
+            }
+        }
+
+        var elf = function(x,y,w,h,src,bx,by){
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.src = src;
+            this.bx = bx;
+            this.by = by;
+            this.parent=null;
+            this.type="elf";
+            this.add = function(bullet){
+
+            }
+
+            this.circulation = function(time){
+                
+            }
+        }
+
+        var my = function(x,y,w,h,src,blood,fx,name){
+            this.px=x;
+            this.py=y;
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.blood = blood;
+            this.type = "my";
+            this.name = name;
+            this.left = false;
+            this.right = false;
+            this.top = false;
+            this.down = false;
+            this.ban_mvoe = null;
+            this.fx = fx;
+            this.bullet = null;
+            this.fire_ = false;
+            var my_this = this;
+            var foe = null;
+            this.src = src;
+            this.zindex = 1;
+            this.move = function(e){
+                if(e == "right"){
+                    this.right = true;
+                    this.fx = "right";
+                }
+                if(e == "left"){
+                    this.left = true;
+                    this.fx = "left";
+                }
+                if(e == "top"){
+                    this.top = true;
+                    this.fx = "top";
+                }
+                if(e == "down"){
+                    this.down = true;
+                    this.fx = "down";
+                }
+            }
+            this.stop = function(e){
+                if(e == "right"){
+                    this.right = false;
+                }
+                if(e == "left"){
+                    this.left = false;
+                }
+                if(e == "top"){
+                    this.top = false;
+                }
+                if(e == "down"){
+                    this.down = false;
+                }
+            }
+            this.ban = function(e){
+                this.ban_mvoe = e;
+            }
+            this.fire = function(e){
+                console.log(this.parent.elf);
+                // if(this.bullet != null)return;
+                this.bullet = 1;
+                var bul = new bullet(this.x,this.y,11,11,"tank/bullet.png",this.fx);
+                bul.name = e;
+                this.parent.add(bul);
+                setTimeout(function(){
+                    my_this.bullet = null;
+                },1000)
+            }
+            this.capacity = function(dr){
+                if(!dr){this.fire_=false;return;}
+                if(dr.x - this.x > 0){this.move("right");}
+                if(dr.x - this.x < 0){this.move("left");}
+                if(Math.abs(dr.x - this.x)< this.w/2){
+                // if(dr.x == this.x){
+                    this.stop("left");
+                    this.stop("right");
+                    if(dr.y - this.y > 0){
+                        this.move("down");
+                        this.fire_ = true;
+                    }
+                }
+
+                
+                if(dr.y - this.y > 0){this.move("down");}
+                if(dr.y - this.y < 0){this.move("top");}
+                if(Math.abs(dr.y - this.y)< this.h/2){
+                // if(dr.x == this.x){
+                    this.stop("down");
+                    this.stop("top");
+                }
+                if(Math.abs(dr.x - this.x) > this.w/2
+                && Math.abs(dr.y - this.y) > this.h/2){
+                    this.fire_=false;
+                }
+            }
+            this.openCapacity = function(dr){
+                foe = dr;
+            }
+			this.closeCapacity = function(){
+				foe = null;
+				this.fire_=false;
+			}
+            this.cras = function(dr){   
+                if (dr.name != "grass" && dr.name != "river"){
+                    this.resetXY();
+                }
+            }
+            this.setXY=function(x,y)
+            {
+                this.px=this.x;
+                this.py=this.y;
+                this.x+=x;
+                this.y+=y;
+            }
+            this.resetXY=function()
+            {
+                this.x=this.px;
+                this.y=this.py;
+            }
+            this.circulation = function(time){
+                if(foe)this.capacity(foe);
+                if(this.fire_ && !this.bullet)this.fire(this.name + "bullet");
+                if(this.left && this.ban_mvoe != "left"){
+                    this.setXY(-3,0);
+                    this.fx = "left";
+                    this.src = "tank/myleft.png"
+                }else
+                if(this.right && this.ban_mvoe != "right"){
+                    this.setXY(3,0);
+                    this.fx = "right";
+                    this.src = "tank/myright.png"
+                }else
+                if(this.top  && this.ban_mvoe != "top"){
+                    this.setXY(0,-3);
+                    this.fx = "top";
+                    this.src = "tank/myup.png"
+                }else
+                if(this.down  && this.ban_mvoe != "down"){
+                    this.setXY(0,3);
+                    this.fx = "down";
+                    this.src = "tank/mydown.png"
+                }
+            }
+        }
+        my.prototype = new elf();
+
+        var bullet = function(x,y,w,h,src,fx){
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.fx = fx;
+            this.src = src;
+            this.zindex = 1;
+            this.type = "bullet";
+            switch(this.fx){
+                case "left": this.x -= (27+this.w/2);break;
+                case "right": this.x += (27+this.w/2);break;
+                case "top": this.y-=(27+this.h/2);break;
+                case "down": this.y+=(27+this.h/2);break;
+            }
+            this.circulation = function(time){
+                if(fx == "right")
+                    this.x += 7;
+                if(fx == "left")
+                   this.x -= 7;
+                if(fx == "top")
+                    this.y -= 7;
+                if(fx == "down")
+                    this.y += 7;
+                if(this.x > 600 || this.x < 0 || this.y > 600 || this.y < 0){
+                   this.parent.remove(this);
+                }
+            }
+            this.cras = function(dr){
+                if(this.name == dr.name+"bullet" || dr.name == "river"){
+                    // console.log("子弹碰到玩家了");
+                    return;}
+                this.parent.remove(this);
+                if(dr.blood-1 == 0){this.parent.remove(dr);}
+                if(dr)dr.blood--;
+            }
+        }
+        bullet.prototype = new elf();
+
+        var grass = function(x,y,w,h,src,blood){
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.src = src;
+            this.zindex = 2;
+            this.blood = blood;
+            this.type = "barrier";
+            this.name = "grass";
+            this.cras = function(dr){
+                if(dr.type="barrier")return;
+            }
+            this.circulation = function(){}
+        }
+        grass.prototype = new elf();
+        var wall = function(x,y,w,h,src,blood){
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.src = src;
+            this.zindex = 2;
+            this.blood = blood;
+            this.type = "barrier";
+            this.name = "wall";
+            this.cras = function(dr){
+                // this.parent.remove(this);
+                if(dr.type="barrier")return;
+            }
+            this.circulation = function(time){}
+        }
+        wall.prototype = new elf();
+
+        var river = function(x,y,w,h,src){
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.src = src;
+            this.zindex = 0;
+            this.type = "barrier";
+            this.name = "river";
+            this.cras = function(dr){
+                // this.parent.remove(this);
+                if(dr.type="barrier")return;
+            }
+            this.circulation = function(time){}
+        }
+        river.prototype = new elf();
+
+        var wt = new stage(can);
+
+        var cj = new scene();
+        var my1 = new my(250+27,500+27,54,54,"tank/myup.png",3,"top","my");
+        // var my2 = new my(250+27,100+27,54,54,"tank/mydown.png",3,"down","my2");
+        var my3 = new my(27,27,54,54,"tank/mydown.png",3,"down","my2");
+        cj.add(my1);
+        // cj.add(my2);
+        cj.add(my3);
+        my3.openCapacity(my1);
+
+        wt.add(cj);
+
+        window.onkeydown=function(e)
+        {
+            if (e.keyCode==87) my1.move("top");
+            if (e.keyCode==83) my1.move("down");
+            if (e.keyCode==65) my1.move("left");
+            if (e.keyCode==68) my1.move("right");
+            if (e.keyCode==74) my1.fire_ = true;  //j键
+
+            if (e.keyCode==38) my2.move("top");
+            if (e.keyCode==40) my2.move("down");
+            if (e.keyCode==37) my2.move("left");
+            if (e.keyCode==39) my2.move("right");
+            if (e.keyCode==110) my2.fire_ = true;  //.键
+        };
+        //键盘弹起事件处理
+        window.onkeyup=function(e)
+        {
+            if (e.keyCode==87) my1.stop("top");
+            if (e.keyCode==83) my1.stop("down");
+            if (e.keyCode==65) my1.stop("left");
+            if (e.keyCode==68) my1.stop("right");
+            if (e.keyCode==74) my1.fire_ = false;  //j键
+
+            if (e.keyCode==38) my2.stop("top");
+            if (e.keyCode==40) my2.stop("down");
+            if (e.keyCode==37) my2.stop("left");
+            if (e.keyCode==39) my2.stop("right");
+            if (e.keyCode==110) my2.fire_ = false;  //.键
+        };
+	}
     }
     </script>
 </head>
